@@ -6,6 +6,8 @@ Release:	2
 Group:		Applications/Sound
 License:	distributable (see README)
 Vendor: 	Tomislav Uzelac <tuzelac@rasip.fer.hr>
+# working URL: ftp://ftp.clara.net/pub/unix/Audio/%{name}-%{version}.tar.gz
+# or: http://www.go.dlr.de/fresh/linux/src/%{name}-%{version}.tgz
 Source0:	ftp://ftp.rasip.fer.hr/pub/mpeg/%{name}-%{version}.tgz
 Patch0:		%{name}-debian.patch
 Patch1:		%{name}-ppc.patch
@@ -29,7 +31,7 @@ czasu rzeczywistego POSIX 1.b.
 %patch1 -p1
 
 %build
-autoconf
+%{__autoconf}
 %configure
 %{__make}
 
