@@ -1,0 +1,15 @@
+diff -uNr amp-0.7.6.orig/audioIO_Linux.c amp-0.7.6/audioIO_Linux.c
+--- amp-0.7.6.orig/audioIO_Linux.c	Sat May 31 19:47:58 1997
++++ amp-0.7.6/audioIO_Linux.c	Tue Aug 27 18:45:51 2002
+@@ -47,9 +47,10 @@
+ 	if ((audio_fd = open ("/dev/dsp", O_WRONLY, 0)) == -1)
+ 		die("Unable to open the audio device\n");
+ 	DB(audio, msg("Audio device opened on %d\n",audio_fd); )
+-
++#if defined(LINUX) && !defined(__powerpc__)
+ 	if (ioctl(audio_fd, SNDCTL_DSP_SETFMT,&play_format) < 0)
+ 		die("Unable to set required audio format\n");
++#endif
+ 	if ((mixer_fd=open("/dev/mixer",O_RDWR)) == -1)
+ 		warn("Unable to open mixer device\n");
+ 	DB(audio, msg("Mixer device opened on %d\n",mixer_fd) );
