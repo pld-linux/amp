@@ -2,7 +2,7 @@ Summary:	Command-line mp3 player based on smpeg
 Summary(pl):	Odtwarzacz mp3 wywo³ywany z linii poleceñ
 Name:		amp
 Version:	0.7.6
-Release:	2
+Release:	3
 Group:		Applications/Sound
 License:	distributable (see README)
 Vendor:		Tomislav Uzelac <tuzelac@rasip.fer.hr>
