@@ -2,11 +2,11 @@ Summary:	Command-line mp3 player based on smpeg
 Summary(pl):	Odtwarzacz mp3 wywo³ywany z linii poleceñ
 Name:		amp
 Version:	0.7.6
-Release:	1
+Release:	2
 Group:		Applications/Sound
 License:	distributable (see README)
-Source0:	ftp://ftp.rasip.fer.hr/pub/mpeg/%{name}-%{version}.tgz
 Vendor: 	Tomislav Uzelac <tuzelac@rasip.fer.hr>
+Source0:	ftp://ftp.rasip.fer.hr/pub/mpeg/%{name}-%{version}.tgz
 Patch0:		%{name}-debian.patch
 Patch1:		%{name}-ppc.patch
 URL:		http://www.rasip.fer.hr/research/compress/algorithms/tools/amp/amp.html
@@ -19,7 +19,9 @@ in realtime. This release of amp has support for the Sajber Jukebox
 and POSIX 1.b realtime extensions. 
 
 %description -l pl
-Program odtwarzaj±cy pliki MPEG (I/II) Audio Layer II & III
+Program odtwarzaj±cy w czasie rzeczywistym pliki MPEG (I/II) Audio
+Layer II i III. Ta wersja ampa ma obs³ugê Sajber Jukebox i rozszerzeñ
+czasu rzeczywistego POSIX 1.b.
 
 %prep
 %setup -q
