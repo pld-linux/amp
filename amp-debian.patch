@@ -1,0 +1,433 @@
+--- amp-0.7.6.orig/audio.c
++++ amp-0.7.6/audio.c
+@@ -46,6 +46,8 @@
+ typedef int bool;
+ #endif
+ 
++int rt = 0;
++
+ void statusDisplay(struct AUDIO_HEADER *header, int frameNo)
+ {
+ 	int minutes,seconds;
+@@ -72,18 +74,20 @@
+ uid_t my_uid = getuid();
+ 
+ #ifdef LINUX_REALTIME
+-	set_realtime_priority();
+-
+-	setreuid(my_uid, my_uid);
++        if (rt) { 
++		set_realtime_priority();
+ 
+-	prefetch_initial_fill();
++		setreuid(my_uid, my_uid);
++		
++		prefetch_initial_fill();
++        }
+ #endif /* LINUX_REALTIME */  
+ 
+ 	initialise_globals();
+ 
+-#ifndef LINUX_REALTIME
++	//#ifndef LINUX_REALTIME
+ 	if (A_FORMAT_WAVE) wav_begin();
+-#endif /* LINUX_REALTIME */
++	//#endif /* LINUX_REALTIME */
+ 	
+ 	if ((g=gethdr(&header))!=0) {
+ 		report_header_error(g);
+@@ -93,10 +97,17 @@
+ 	if (header.protection_bit==0) getcrc();
+ 
+ #ifdef LINUX_REALTIME
+-	if (setup_fancy_audio(&header)!=0) {
+-		warn("Cannot set up direct-to-DMA audio. Exiting\n");
+-		return -1;
++	if (rt) {
++		if (setup_fancy_audio(&header)!=0) {
++			warn("Cannot set up direct-to-DMA audio. Exiting\n");
++			return -1;
++		}
+ 	}
++	else
++		if (setup_audio(&header)!=0) {
++			warn("Cannot set up audio. Exiting\n");
++			return -1;
++		}
+ #else
+ 	if (setup_audio(&header)!=0) {
+ 		warn("Cannot set up audio. Exiting\n");
+@@ -119,9 +130,11 @@
+ 		}
+ 
+ #ifdef LINUX_REALTIME
+-	if (start_fancy_audio(&header)!=0) {
+-		warn("Cannot start direct-to-DMA audio. Exiting\n");
+-		return -1;
++	if (rt) {
++		if (start_fancy_audio(&header)!=0) {
++			warn("Cannot start direct-to-DMA audio. Exiting\n");
++			return -1;
++		}
+ 	}
+ #endif /* LINUX_REALTIME */
+ 
+@@ -136,7 +149,12 @@
+ 			if ((g=gethdr(&header))!=0) {
+ 				report_header_error(g);
+ #ifdef LINUX_REALTIME
+-				cleanup_fancy_audio();
++				if (rt) {
++					cleanup_fancy_audio();
++				}
++				else {
++					if (g==GETHDR_EOF && A_FORMAT_WAVE) wav_end(&header);
++				}
+ #else
+ 				if (g==GETHDR_EOF && A_FORMAT_WAVE) wav_end(&header);
+ #endif /* LINUX_REALTIME */
+@@ -161,16 +179,20 @@
+ 			cnt++;
+ 		}
+ #ifdef LINUX_REALTIME
+-		if (block_fancy_audio(snd_eof)!=0) {
+-			warn("Problems with direct-to-DMA audio\n");
+-			return -1;
++		if (rt) {
++			if (block_fancy_audio(snd_eof)!=0) {
++				warn("Problems with direct-to-DMA audio\n");
++				return -1;
++			}
+ 		}
+ #endif
+ 	}
+ #ifdef LINUX_REALTIME
+-	if (stop_fancy_audio()!=0) {
+-		warn("Cannot stop direct-to-DMA audio. Exiting\n");
+-		return -1;
++	if (rt) {
++		if (stop_fancy_audio()!=0) {
++			warn("Cannot stop direct-to-DMA audio. Exiting\n");
++			return -1;
++		}
+ 	}
+ #endif
+ 	return 0;
+@@ -179,6 +201,7 @@
+ int main(int argc,char **argv)
+ {
+ int argPos;
++struct stat st;
+ 
+ 	argPos=args(argc,argv); /* process command line arguments */
+ 
+@@ -194,11 +217,27 @@
+ 			if (argPos<argc)
+ 				for(;argPos<argc;argPos++) {
+ #ifdef LINUX_REALTIME
+-                                if (geteuid() != 0) 
+-                                        die("effective UID not root, cannot use realtime buffering\n");
+-				rt_play(argv[argPos]);
++					if (stat(argv[argPos], &st) < 0) {
++						warn("Could not stat file: %s\n",argv[argPos]);
++						continue;
++					}
++					if (S_ISREG(st.st_mode)) {
++						rt = 1;
++					}
++				        if (geteuid() != 0) {
++				     		rt = 0;
++					}
++					if (rt) {
++//						if (geteuid() != 0) 
++//							die("effective UID not root, cannot use realtime buffering\n");
++						rt_play(argv[argPos]);
++					}
++					else {
++						play(argv[argPos],0);
++					}
++
+ #else /* LINUX_REALTIME */
+-				play(argv[argPos],0);
++					play(argv[argPos],0);
+ #endif /* LINUX_REALTIME */
+ 				}
+ 			else
+@@ -288,7 +327,12 @@
+ int ready_audio(void)
+ {
+ #ifdef LINUX_REALTIME
+-	return ready_fancy_audio();
++	if (rt) {
++		return ready_fancy_audio();
++	}
++	else {
++		return 1;
++	}
+ #else
+ 	return 1;
+ #endif
+@@ -298,8 +342,9 @@
+  */
+ void play(char *inFileStr, char *outFileStr)
+ {
+-	if (strcmp(inFileStr,"-")==0)
++	if (strcmp(inFileStr,"-")==0) {
+ 		in_file=stdin;
++	}
+ 	else {
+ 		if ((in_file=fopen(inFileStr,"r"))==NULL) {
+ 			warn("Could not open file: %s\n",inFileStr);
+--- amp-0.7.6.orig/getbits.c
++++ amp-0.7.6/getbits.c
+@@ -14,6 +14,8 @@
+ #define	GETBITS
+ #include "getbits.h"
+ 
++extern int rt;
++
+ /* 
+  * buffer and bit manipulation functions ***************************************
+  */
+@@ -256,7 +258,15 @@
+ static inline int get_input(unsigned char* bp, unsigned int size)
+ {
+ #ifdef LINUX_REALTIME
+-        return prefetch_get_input(bp,size);
++	if (rt) {
++		return prefetch_get_input(bp,size);
++	}
++	else {
++		if ( fread( bp , 1, size, in_file) != size) 
++			if (feof(in_file)) return GETHDR_EOF;
++			else return GETHDR_ERR;
++		return 0;
++	}
+ #else /* LINUX_REALTIME */
+ 	if ( fread( bp , 1, size, in_file) != size) 
+                 if (feof(in_file)) return GETHDR_EOF;
+--- amp-0.7.6.orig/rtbuf.c
++++ amp-0.7.6/rtbuf.c
+@@ -431,7 +431,7 @@
+ int block_fancy_audio(int snd_eof)
+ {
+ int i;
+-struct fd_set wmask;
++fd_set wmask;
+ struct timeval tm;
+ 
+ 	do {
+--- amp-0.7.6.orig/buffer.c
++++ amp-0.7.6/buffer.c
+@@ -29,6 +29,8 @@
+ #include "audioIO.h"
+ #include "audio.h"
+ 
++extern int rt;
++
+ struct ringBuffer {		/* A ring buffer to store the data in */
+ 	char *bufferPtr;	/* buffer pointer */
+ 	int inPos, outPos;	/* positions for reading and writing */
+@@ -75,7 +77,15 @@
+ 
+         if (A_AUDIO_PLAY) {
+ #ifdef LINUX_REALTIME
+-                rt_printout((short*) sample_buffer, j * sizeof(short));
++		if (rt) {
++			rt_printout((short*) sample_buffer, j * sizeof(short));
++		}
++		else {
++			if (AUDIO_BUFFER_SIZE==0)
++				audioWrite((char*)sample_buffer, j * sizeof(short));
++			else
++				audioBufferWrite((char*)sample_buffer, j * sizeof(short));
++		}
+ #else /* LINUX_REALTIME */
+                 if (AUDIO_BUFFER_SIZE==0)
+                         audioWrite((char*)sample_buffer, j * sizeof(short));
+--- amp-0.7.6.orig/debian/README.Debian
++++ amp-0.7.6/debian/README.Debian
+@@ -0,0 +1,11 @@
++amp for Debian
++----------------------
++
++amp (Audio Mpeg Player) is a realtime MPEG compressed audio file
++player.
++
++amp works with both MPEG1 and MPEG2 audio files, layers 2 and 3.
++
++Ed Boraas <ed@debian.org>, Sun Jun 13 01:19:41 MDT 1999
++
++
+--- amp-0.7.6.orig/debian/changelog
++++ amp-0.7.6/debian/changelog
+@@ -0,0 +1,57 @@
++amp (0.7.6-7) frozen unstable; urgency=low
++
++  * Do not install with setuid root. (closes: #62519)
++
++ -- Fredrik Hallenberg <hallon@debian.org>  Mon, 17 Apr 2000 09:43:32 +0200
++
++amp (0.7.6-6) unstable; urgency=low
++
++  * Forgot to change maintainer in control.
++  * Updated standards version to 3.0.0.
++  
++ -- Fredrik Hallenberg <hallon@debian.org>  Sun, 17 Oct 1999 01:15:45 +0200
++
++amp (0.7.6-5) unstable; urgency=low
++
++  * New maintainer.
++  * Use dh_suidregister.
++  * Fixed realtime stuff so it is only used when playing regular files.
++    (closes: #41900, #44493)
++
++ -- Fredrik Hallenberg <hallon@debian.org>  Sat, 16 Oct 1999 12:00:57 +0200
++
++amp (0.7.6-4) unstable; urgency=low
++  
++  * Now /really/ runs suid root :)
++  * Removed deprecated dh_du from debian/rules
++
++ -- Ed Boraas <ed@debian.org>  Mon, 14 Jun 1999 23:55:40 -0600
++
++
++amp (0.7.6-3) unstable; urgency=low
++
++  * Fixed upstream realtime support bug in rtbuf.c and compiled
++    with realtime support enabled. (Closes: #25346)
++  * amp now runs suid root (required for realtime support).
++  * All non-wishlist bugs are now fixed.
++
++ -- Ed Boraas <ed@debian.org>  Mon, 14 Jun 1999 11:31:04 -0600
++  
++
++amp (0.7.6-2) unstable; urgency=low
++
++  * New maintainer.
++
++ -- Ed Boraas <ed@debian.org>  Sun, 13 Jun 1999 01:19:11 -0600
++
++
++amp (0.7.6-1) unstable; urgency=low
++
++  * Initial release.
++
++ -- Ben Gertzfield <che@debian.org>  Sun, 25 Jan 1998 01:50:28 -0800
++
++Local variables:
++mode: debian-changelog
++add-log-mailing-address: "hallon@debian.org"
++End:
+--- amp-0.7.6.orig/debian/control
++++ amp-0.7.6/debian/control
+@@ -0,0 +1,14 @@
++Source: amp
++Priority: optional
++Section: non-free/sound
++Maintainer: Fredrik Hallenberg <hallon@debian.org> 
++Standards-Version: 3.0.0
++
++Package: amp
++Architecture: any
++Section: non-free/sound
++Depends: ${shlibs:Depends}
++Description: The Audio MPEG Player
++ amp is an MPEG audio file player.
++ .
++ amp can play MPEG1 or MPEG2 files, layers 2 and 3.
+--- amp-0.7.6.orig/debian/copyright
++++ amp-0.7.6/debian/copyright
+@@ -0,0 +1,31 @@
++This package was Debianized by Ed Boraas <ed@debian.org>
++
++It was downloaded from ftp://ftp.rasip.fer.hr/pub/mpeg/
++
++Copyright:
++
++This software can be used freely for any purpose. It can be distributed
++freely, as long as it is not sold commercially without permission from
++Tomislav Uzelac <tuzelac@rasip.fer.hr>. However, including this software
++on CD_ROMs containing other free software is explicitly permitted even 
++when a modest distribution fee is charged for the CD, as long as this
++software is not a primary selling argument for the CD.
++
++Building derived versions of this software is permitted, as long as they
++are not sold commercially without permission from Tomislav Uzelac 
++<tuzelac@rasip.fer.hr>. Any derived versions must be clearly marked as
++such, and must be called by a name other than amp. Any derived versions
++must retain this copyright notice.
++
++/* This license is itself copied from Tatu Ylonen's ssh package. It does 
++ * not mention being copyrighted itself :)
++ */
++
++THERE IS NO WARRANTY FOR THIS PROGRAM - whatsoever. You use it entirely
++at your risk, and neither Tomislav Uzelac, nor FER will be liable for
++any damages that might occur to your computer, software, etc. in
++consequence of you using this freeware program.
++
++
++Tomislav Uzelac
++<tuzelac@rasip.fer.hr>
+--- amp-0.7.6.orig/debian/rules
++++ amp-0.7.6/debian/rules
+@@ -0,0 +1,58 @@
++#!/usr/bin/make -f
++# Sample debian/rules that uses debhelper. GNU copyright 1997 by Joey Hess.
++
++# Uncomment this to turn on verbose mode.
++#export DH_VERBOSE=1
++
++build: build-stamp
++build-stamp:
++	dh_testdir
++
++	./configure --prefix=/usr --enable-realtime
++	$(MAKE)
++
++	touch build-stamp
++
++clean:
++	dh_testdir
++	dh_testroot
++	rm -f build-stamp
++
++	-$(MAKE) distclean
++
++	dh_clean
++
++# Build architecture-independent files here.
++binary-indep: build
++# We have nothing to do by default.
++
++# Build architecture-dependent files here.
++binary-arch: build amp
++
++amp: build
++	dh_testdir 
++	dh_testroot
++	dh_clean 
++	dh_installdirs usr/bin usr/share/man/man1
++	# Add here commands to install the files into debian/tmp
++	cp amp debian/tmp/usr/bin
++	cp amp.1 debian/tmp/usr/share/man/man1
++	dh_installdocs README
++	dh_installchangelogs
++	dh_strip 
++	dh_compress
++	dh_fixperms
++#	chmod u+s debian/tmp/usr/bin/amp
++#	dh_suidregister
++	dh_installdeb
++	dh_shlibdeps
++	dh_gencontrol
++	dh_makeshlibs
++	dh_md5sums
++	dh_builddeb
++
++source diff:                                                                  
++	@echo >&2 'source and diff are obsolete - use dpkg-source -b'; false
++
++binary: binary-indep binary-arch
++.PHONY: build clean binary-indep binary-arch binary
