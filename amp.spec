@@ -34,6 +34,7 @@ autoconf
 %install
 rm -rf $RPM_BUILD_ROOT
 install -d $RPM_BUILD_ROOT{%{_bindir},%{_mandir}/man1}
+
 install amp $RPM_BUILD_ROOT%{_bindir}
 install amp.1 $RPM_BUILD_ROOT%{_mandir}/man1
 
