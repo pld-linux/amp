@@ -2,7 +2,7 @@ Summary:	Command-line mp3 player based on smpeg
 Summary(pl):	Odtwarzacz mp3 wywo³ywany z linii poleceñ
 Name:		amp
 Version:	0.7.6
-Release:	3
+Release:	4
 Group:		Applications/Sound
 License:	distributable (see README)
 Vendor:		Tomislav Uzelac <tuzelac@rasip.fer.hr>
@@ -32,6 +32,7 @@ czasu rzeczywistego POSIX 1.b.
 %patch1 -p1
 
 %build
+cp -f /usr/share/automake/config.sub .
 %{__autoconf}
 %configure
 %{__make}
