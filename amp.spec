@@ -8,6 +8,7 @@ License:	distributable (see README)
 Source0:	ftp://ftp.rasip.fer.hr/pub/mpeg/%{name}-%{version}.tgz
 Vendor: 	Tomislav Uzelac <tuzelac@rasip.fer.hr>
 Patch0:		%{name}-debian.patch
+Patch1:		%{name}-ppc.patch
 URL:		http://www.rasip.fer.hr/research/compress/algorithms/tools/amp/amp.html
 BuildRequires:	autoconf
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
@@ -23,6 +24,7 @@ Program odtwarzaj±cy pliki MPEG (I/II) Audio Layer II & III
 %prep
 %setup -q
 %patch0 -p1
+%patch1 -p1
 
 %build
 autoconf
