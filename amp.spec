@@ -19,7 +19,7 @@ BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 %description
 This audio program will play MPEG (I/II) Audio Layer II & III files
 in realtime. This release of amp has support for the Sajber Jukebox
-and POSIX 1.b realtime extensions. 
+and POSIX 1.b realtime extensions.
 
 %description -l pl
 Program odtwarzaj±cy w czasie rzeczywistym pliki MPEG (I/II) Audio
