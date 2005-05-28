@@ -14,6 +14,7 @@ Patch0:		%{name}-debian.patch
 Patch1:		%{name}-ppc.patch
 URL:		http://www.rasip.fer.hr/research/compress/algorithms/tools/amp/amp.html
 BuildRequires:	autoconf
+BuildRequires:	automake
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
