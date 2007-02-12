@@ -1,5 +1,5 @@
 Summary:	Command-line MP3 player based on smpeg
-Summary(pl.UTF-8):   Odtwarzacz MP3 wywoływany z linii poleceń
+Summary(pl.UTF-8):	Odtwarzacz MP3 wywoływany z linii poleceń
 Name:		amp
 Version:	0.7.6
 Release:	4
