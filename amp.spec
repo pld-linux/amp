@@ -1,5 +1,5 @@
 Summary:	Command-line MP3 player based on smpeg
-Summary(pl):	Odtwarzacz MP3 wywo³ywany z linii poleceñ
+Summary(pl.UTF-8):   Odtwarzacz MP3 wywoÅ‚ywany z linii poleceÅ„
 Name:		amp
 Version:	0.7.6
 Release:	4
@@ -22,9 +22,9 @@ This audio program will play MPEG (I/II) Audio Layer II & III files
 in realtime. This release of amp has support for the Sajber Jukebox
 and POSIX 1.b realtime extensions.
 
-%description -l pl
-Program odtwarzaj±cy w czasie rzeczywistym pliki MPEG (I/II) Audio
-Layer II i III. Ta wersja ampa ma obs³ugê Sajber Jukebox i rozszerzeñ
+%description -l pl.UTF-8
+Program odtwarzajÄ…cy w czasie rzeczywistym pliki MPEG (I/II) Audio
+Layer II i III. Ta wersja ampa ma obsÅ‚ugÄ™ Sajber Jukebox i rozszerzeÅ„
 czasu rzeczywistego POSIX 1.b.
 
 %prep
